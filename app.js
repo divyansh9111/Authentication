@@ -5,7 +5,9 @@ const mongoose=require("mongoose");
 const path = require("path");
 const ejs=require("ejs");
 // const encrypt=require("mongoose-encryption");
-const md5=require("md5");//level 3 security
+// const md5=require("md5");//level 3 security
+const bcrypt=require("bcrypt");//level 4 security
+const saltRounds=10;
 const port=3000;
 const app=express();
 
@@ -59,9 +61,10 @@ app.get("/register",(req,res)=>{
 
 
 app.post("/register",(req,res)=>{
-    const newUser=User({
+    bcrypt.hash(req.body.password,saltRounds,(err,hash)=>{//level 4 security
+      const newUser=User({
         email:req.body.username,
-        password:md5(req.body.password),
+        password:hash,
     });
     newUser.save((err)=>{
         if (err) {
@@ -69,21 +72,26 @@ app.post("/register",(req,res)=>{
         }else{
             res.render("secrets");
         }
+    });   
     });
+   
 });
 
 app.post("/login",(req,res)=>{
     const username=req.body.username;
-    const password=md5(req.body.password);
+    const password=req.body.password;
 
     User.findOne({email:username},(err,foundUser)=>{
         if (err) {
             console.log(err);
         }else{
-            if (foundUser) {//level 1 security
-                if (foundUser.password===password) {
-                    res.render("secrets");
-                }
+            if (foundUser) {//level 5  security
+                bcrypt.compare(password,foundUser.password,(err,result)=>{
+                    if (result===true) {
+                        res.render("secrets");        
+                    }
+                });
+                
             }
         }
     });

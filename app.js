@@ -46,7 +46,8 @@ mongoose.connect("mongodb://127.0.0.1:27017/userDB",{useNewUrlParser:true})
 const userSchema=new mongoose.Schema({
     email: String,
   password: String,
-  googleId: String //to identify users as an unique google user
+  googleId: String, //to identify users as an unique google user
+  secret:String
 });
 
 //MONGOOSE SCHEMA PLUGIN
@@ -112,8 +113,27 @@ app.get("/register",(req,res)=>{
 });
 
 app.get("/secrets",(req,res)=>{
+    // if (req.isAuthenticated()) {
+    //     res.render("secrets");
+    // }else{
+    //     res.redirect("/login");
+    // }   
+    //removed above code so that anybody weather he is authenticated or not can see the secrets of all the users.
+
+    // finding all the users which have any secret
+    User.find({secret:{$ne:null}},(err,foundUsers)=>{
+        if (err) {
+            console.log(err);
+        }else{
+            res.render("secrets",{userWithSecret:foundUsers});
+        }
+    });
+
+});
+
+app.get("/submit",(req,res)=>{
     if (req.isAuthenticated()) {
-        res.render("secrets");
+        res.render("submit");
     }else{
         res.redirect("/login");
     }
@@ -157,7 +177,22 @@ app.post("/login",(req,res)=>{
     });
 });
 
-
+app.post("/submit",(req,res)=>{
+    const submittedSecret=req.body.secret;
+    console.log(req.user.id);
+    User.findById(req.user.id,(err,foundUser)=>{
+        if (err) {
+            console.log(err); 
+        }else{
+            if (foundUser) {
+                foundUser.secret=submittedSecret;
+                foundUser.save(()=>{
+                    res.redirect("/secrets");
+                });
+            }
+        }
+    });
+});
 
 
 
